@@ -2,15 +2,10 @@
 'use strict';
 
 /**
- * Exception indicating that the timeout expired.
+ * Local reference to TimeoutError
+ * @private
  */
-var TimeoutError = module.exports.TimeoutError = function() {
-  Error.call(this)
-  Error.captureStackTrace(this, this.constructor);
-  this.message = 'Timeout';
-};
-
-require('util').inherits(TimeoutError, Error);
+var TimeoutError;
 
 /**
  * Rejects a promise with a {@link TimeoutError} if it does not settle within
@@ -20,8 +15,9 @@ require('util').inherits(TimeoutError, Error);
  * @param {number} timeoutMillis Number of milliseconds to wait on settling.
  * @returns {Promise} representing the given promise or a timeout
  */
-module.exports.timeout = function(promise, timeoutMillis) {
-  var timeout;
+var timeout = module.exports.timeout = function(promise, timeoutMillis) {
+  var error = new TimeoutError(),
+      timeout;
 
   if ('object' == typeof timeoutMillis && 'number' == typeof promise) {
     let timeoutMillis_ = promise;
@@ -33,7 +29,7 @@ module.exports.timeout = function(promise, timeoutMillis) {
     promise,
     new Promise(function(resolve, reject) {
       timeout = setTimeout(function() {
-        reject(new TimeoutError());
+        reject(error);
       }, timeoutMillis);
     }),
   ]).then(function(v) {
@@ -44,3 +40,14 @@ module.exports.timeout = function(promise, timeoutMillis) {
     throw err;
   });
 };
+
+/**
+ * Exception indicating that the timeout expired.
+ */
+TimeoutError = module.exports.TimeoutError = function() {
+  Error.call(this)
+  Error.captureStackTrace(this, timeout);
+  this.message = 'Timeout';
+};
+
+require('util').inherits(TimeoutError, Error);
